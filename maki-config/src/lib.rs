@@ -1279,7 +1279,7 @@ pub struct UiConfig {
         default = NotificationMethod::Auto,
         ty = "string",
         default_doc = "auto",
-        desc = "Terminal notification method: auto, osc9, bell, notify, or off"
+        desc = "Notification method: auto, osc9, bell, notify, or off"
     )]
     pub notifications: NotificationMethod,
 
@@ -1299,7 +1299,7 @@ pub struct UiConfig {
         default = ThinkingLines::Tail(DEFAULT_THINKING_LINES),
         ty = "integer",
         default_doc = "3",
-        desc = "Model reasoning starts collapsed to a header and its last N rows. Click it to expand or collapse it. 0 shows the header only, -1 never collapses"
+        desc = "Collapse model reasoning to its header and last N lines. Click to toggle. 0 shows only the header, -1 never collapses"
     )]
     pub thinking_lines: ThinkingLines,
 
@@ -1463,10 +1463,10 @@ pub enum ShellPreference {
 #[derive(Debug, Clone, ConfigSection, Serialize)]
 #[config(section = "agent")]
 pub struct AgentConfig {
-    #[config(default = DEFAULT_MAX_OUTPUT_BYTES, min = MIN_OUTPUT_BYTES, desc = "Max tool output size (bytes)")]
+    #[config(default = DEFAULT_MAX_OUTPUT_BYTES, min = MIN_OUTPUT_BYTES, desc = "Max bytes of tool output the model sees")]
     pub max_output_bytes: usize,
 
-    #[config(default = DEFAULT_MAX_OUTPUT_LINES, min = MIN_OUTPUT_LINES, desc = "Max tool output lines")]
+    #[config(default = DEFAULT_MAX_OUTPUT_LINES, min = MIN_OUTPUT_LINES, desc = "Max lines of tool output the model sees")]
     pub max_output_lines: usize,
 
     #[config(default = DEFAULT_MAX_CONTINUATION_TURNS, min = MIN_MAX_CONTINUATION_TURNS, desc = "Max automatic continuation turns")]
@@ -1500,7 +1500,7 @@ pub struct AgentConfig {
 
     #[config(
         default = true,
-        desc = "Rewrite bash commands with [rtk](https://github.com/rtk-ai/rtk) when it is installed"
+        desc = "Rewrite the model's bash commands with [rtk](https://github.com/rtk-ai/rtk) when it is installed"
     )]
     pub rtk: bool,
 

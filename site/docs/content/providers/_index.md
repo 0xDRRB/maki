@@ -381,7 +381,7 @@ New models start at the **medium** tier until you assign one in the picker.
 
 1. Tweak a built-in (pick a plan, change its base URL, set `enable_free_models` for Opencode).
 2. Declare a custom provider that speaks OpenAI, Anthropic, or Google wire format.
-3. [Select a plugin package](#select-a-provider-package) to implement a provider name.
+3. [Pick the plugin package](#select-a-provider-package) that implements a provider.
 
 ```toml
 # Point a built-in at a proxy. Env vars still win over this file.
@@ -420,7 +420,7 @@ supports_vision = false
 |-------|------|-------|
 | `display_name` | string | Shown in pickers and auth status |
 | `protocol` | string | `openai`, `openai-responses`, `anthropic`, or `google`. Required for custom slugs |
-| `plugin` | string | Package selected to implement this provider. Cannot be combined with `protocol`. See [provider selection](#select-a-provider-package) |
+| `plugin` | string | [Package](#select-a-provider-package) that implements this provider. Not allowed with `protocol` |
 | `base_url` | string | Origin of the API. Maki appends the protocol paths |
 | `plan` | string | Built-in plan key (see Plans below). Sets base URL and default model |
 | `api_key_env` | string | Env var that holds the key. Defaults to `<SLUG>_API_KEY` |
@@ -548,18 +548,18 @@ The [Lua API](/docs/lua-api/#maki-provider-register) lists every field. This sec
 
 ### Select a provider package
 
-Maki builds a generic client for each [models.dev](https://models.dev/) provider it does not implement itself. A plugin cannot register one of those names unless you select its [package](/docs/packages/) in `providers.toml`:
+Maki builds a generic client for each [models.dev](https://models.dev/) provider it has no built-in support for. To have a plugin implement one instead, select its [package](/docs/packages/) in `providers.toml`:
 
 ```toml
 [acme]
 plugin = "acme-provider"
 ```
 
-Only the selected package can then register `acme`, and it receives any credentials already saved under that name. `plugin` cannot be combined with `protocol`, and built-in names stay [reserved](#slug-rules).
+Only that package can then register `acme`, and it receives the credentials already saved for `acme`. Built-in names stay [reserved](#slug-rules).
 
-Selection grants no permissions, so the package still needs its usual approval. If the package is missing, fails to load, or does not register the provider, the provider is unavailable. Maki does not fall back to the generic client.
+The package still needs its usual permission approval. If it is missing, fails to load, or does not register `acme`, the provider is unavailable. Maki does not fall back to the generic client.
 
-Maki reads the selection when plugins load. Run `/reload` or restart after changing it. Until then the loaded provider keeps working. To return to the generic client, remove `plugin` and reload.
+Run `/reload` or restart after changing `plugin`. Remove it to go back to the generic client.
 
 A package that ships several providers can skip the ones you did not select:
 

@@ -649,8 +649,10 @@ fn parse_hint_content(lua: &Lua, spec: &Table) -> LuaResult<HintContent> {
 /// to decide when to use the tool), a JSON Schema for the input, and a handler
 /// function. The handler receives `(input, ctx)` and returns either a plain
 /// string or a table with richer output fields.
-/// `ctx:output_mode()` is "full" or "compact". Apply presentation limits
-/// only in compact mode so Python and other code callers get complete text.
+///
+/// `ctx:output_mode()` returns "compact" when the result goes to the model and
+/// "full" when code such as `code_execution` made the call. Apply output limits
+/// only in compact mode.
 ///
 /// @param spec table Tool specification:
 ///   name            (string)   Required. ASCII identifier, up to 64 chars ([a-zA-Z_][a-zA-Z0-9_]*).
@@ -658,7 +660,7 @@ fn parse_hint_content(lua: &Lua, spec: &Table) -> LuaResult<HintContent> {
 ///   schema          (table)    Required. JSON Schema object describing the tool's input parameters.
 ///   handler         (function) Required. Called with `(input, ctx)` when the tool is invoked.
 ///                              Must return a string or a table with any of these fields:
-///                                llm_output  (string)  Text returned to the caller, including the model.
+///                                llm_output  (string)  Result text for the model or the calling code.
 ///                                is_error    (boolean) When true, the result is treated as an error.
 ///                                content     (string)  Alias for llm_output (legacy).
 ///                                body        (BufHandle) Rich rendered body shown in the UI.

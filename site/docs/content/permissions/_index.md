@@ -269,9 +269,9 @@ To reach a service on your own machine or network, list it in [`net.allowed_priv
 
 A provider plugin calling its own origin also skips the guard, since chat requests already go there. This covers an origin you set with `<SLUG>_BASE_URL` or `providers.toml`, and a built-in provider's default. It does not cover a `base_url` that a third-party plugin declares.
 
-Behind a proxy, Maki lets the proxy resolve any host it cannot resolve itself. Sandboxes such as nono need this, since they block DNS and let traffic out only through their proxy. A host that resolves to a private address is still refused. `maki.net.connect` opens raw TCP without the proxy, so its hosts must always resolve locally.
+Maki reads proxy variables the way curl does: `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` in either case, and `http_proxy` (lowercase only) for plain `http://`.
 
-Maki reads the proxy variables the way curl does: `HTTPS_PROXY`, `ALL_PROXY` and `NO_PROXY` in either case, and only lowercase `http_proxy` for plain `http://`. A `socks4://` or `socks5://` proxy receives an address, so the name must resolve locally. Use `socks4a://` or `socks5h://` to have the proxy resolve it.
+A host Maki cannot resolve is left to the proxy. Sandboxes such as nono need this, because they block DNS and only let traffic out through their proxy. A host that resolves to a private address is still refused. Two cases always resolve locally: `maki.net.connect`, which skips the proxy, and `socks4://` or `socks5://` proxies, which take an address. Use `socks4a://` or `socks5h://` to let the proxy resolve names.
 
 ## Session Persistence
 

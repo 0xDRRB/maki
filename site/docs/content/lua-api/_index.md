@@ -407,8 +407,10 @@ Your {spec} table must include a name, a description (the model reads it
 to decide when to use the tool), a JSON Schema for the input, and a handler
 function. The handler receives `(input, ctx)` and returns either a plain
 string or a table with richer output fields.
-`ctx:output_mode()` is "full" or "compact". Apply presentation limits
-only in compact mode so Python and other code callers get complete text.
+
+`ctx:output_mode()` returns "compact" when the result goes to the model and
+"full" when code such as `code_execution` made the call. Apply output limits
+only in compact mode.
 
 **Parameters:**
 
@@ -418,7 +420,7 @@ only in compact mode so Python and other code callers get complete text.
   - `schema` (`table`) Required. JSON Schema object describing the tool's input parameters.
   - `handler` (`function`) Required. Called with `(input, ctx)` when the tool is invoked.
     Must return a string or a table with any of these fields:
-    - `llm_output` (`string`) Text returned to the caller, including the model.
+    - `llm_output` (`string`) Result text for the model or the calling code.
     - `is_error` (`boolean`) When true, the result is treated as an error.
     - `content` (`string`) Alias for llm_output (legacy).
     - `body` (`BufHandle`) Rich rendered body shown in the UI.
@@ -1379,10 +1381,10 @@ through optional callbacks while the tool runs.
 - `{input}` (`table|any`) Tool input (JSON-serializable). Must match the tool's `input_schema`.
 - `{opts?}` (`table?`) Optional fields:
   - `timeout` (`integer?`) deadline in seconds.
-  - `output_mode` (`string?`) "full" (default) returns complete text.
-    "compact" applies model output limits and automatic RTK rewriting.
-    Hooks receive the mode in both cases so presentation filters can skip
-    full results. Permissions and redaction still apply in both modes.
+  - `output_mode` (`string?`) "full" (default) returns the complete text.
+    "compact" returns what the model would get, with output limits and
+    RTK rewriting. Permissions and hooks apply in both modes, and hooks
+    see the mode as `ctx.output_mode`.
   - `on_live_buf` (`function?`) called with a `BufHandle` for each live buffer
     the tool publishes. Must not yield.
   - `on_annotation` (`function?`) called with an annotation string for each
@@ -2063,11 +2065,10 @@ local id = maki.fn.jobstart("git status", {
 maki.fn.jobstart({cmd}, {opts?})
 ```
 
-Run a command in the background. A string runs through `bash -c` on Unix.
-On Windows it follows `agent.shell`: Git Bash by default, `cmd.exe /C`
-when set to `cmd`, or any program you name. A table is spawned as argv,
-with no shell in between (nothing in it can be read as a redirect, a pipe,
-or `$(...)`).
+Run a command in the background. A string runs through `bash -c` on Unix
+and through [`agent.shell`](/docs/configuration/#agent) on Windows. A table
+is spawned as argv with no shell, so nothing in it is read as a redirect, a
+pipe, or `$(...)`.
 You get back a job id that you can pass to `jobstop` or `jobwait` to
 control the process.
 
@@ -4053,9 +4054,7 @@ it does for a built-in provider.
 
 {spec} fields:
   `slug` (string) Required. Letters, digits, `_` and `-`, starting with a
-          letter or digit. Shipped names and custom protocol definitions
-          are reserved. A catalog name requires `plugin = "package-name"`
-          in providers.toml selecting this package.
+          letter or digit. See the [slug rules](/docs/providers/#slug-rules).
   `display_name` (string) Required. Shown in the UI.
   `codec` (string) Wire format: `"openai"`, `"openai-responses"`,
           `"anthropic"` or `"google"`.
@@ -4194,15 +4193,15 @@ maki.provider.register({
 maki.provider.is_selected({slug})
 ```
 
-Whether providers.toml selects this plugin to implement the named provider.
-Use this at load time for optional providers in a package. The query reads
-no credentials and grants no permissions.
+Whether providers.toml selects this package to implement {slug}. A package
+that ships several providers calls it at load time to skip the ones the user
+did not [select](/docs/providers/#select-a-provider-package).
 
 **Parameters:**
 
-- `{slug}` (`string`) Provider name selected with `plugin = "package-name"`.
+- `{slug}` (`string`) Provider name.
 
-**Returns:** boolean Whether this package is selected.
+**Returns:** boolean
 
 ---
 
@@ -4755,11 +4754,8 @@ local _, err = maki.task.focus("main")
 maki.task.remove({id})
 ```
 
-Deletes a finished task and its transcript, so a reload cannot bring it
-back. The main chat and still-running tasks are refused.
-
-Deleting the focused task moves focus to the chat before it. Call
-`maki.task.focus()` afterwards to land somewhere else.
+Deletes a finished task and its saved transcript. Refuses the main chat and
+running tasks. Deleting the focused task moves focus to the chat before it.
 
 **Parameters:**
 
@@ -7276,10 +7272,11 @@ ListPicker.range_spans = range_spans
 M.DEFAULT_MAX_LINE_BYTES = DEFAULT_MAX_LINE_BYTES
 function M.extend(spec)
 
---- Model presentation limits, or nil, nil for full results.
+--- Returns max_lines, max_bytes: tool override when set, agent-wide otherwise.
+--- Both nil in full mode.
 function M.resolve(opts, ctx)
 
---- Zero disables the line-byte presentation limit for full results.
+--- opts.max_line_bytes, or 0 (no limit) in full mode.
 function M.line_bytes(opts, ctx)
 
 --- Last {n} lines of {text}, or all of it when it has fewer. Newlines separate
@@ -7530,6 +7527,7 @@ function ToolView.restore_markdown(output, is_error, opts)
 
 ```lua
 --- require("maki.truncate")(text, max_lines, max_bytes)
---- Bounds model text. With both limits nil, returns the complete text unchanged.
+--- Cuts {text} to the limits and notes how many bytes it dropped. A nil limit
+--- is unlimited.
 ```
 

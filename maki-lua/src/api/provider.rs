@@ -608,12 +608,12 @@ fn owned(slugs: &OwnedSlugs, slug: &str) -> LuaResult<()> {
     )))
 }
 
-/// Whether providers.toml selects this plugin to implement the named provider.
-/// Use this at load time for optional providers in a package. The query reads
-/// no credentials and grants no permissions.
+/// Whether providers.toml selects this package to implement {slug}. A package
+/// that ships several providers calls it at load time to skip the ones the user
+/// did not [select](/docs/providers/#select-a-provider-package).
 ///
-/// @param slug string Provider name selected with `plugin = "package-name"`.
-/// @return boolean Whether this package is selected.
+/// @param slug string Provider name.
+/// @return boolean
 #[lua_fn]
 fn is_selected(_lua: &Lua, #[ctx] plugin: Arc<str>, slug: String) -> LuaResult<bool> {
     Ok(ProvidersConfig::load_or_default()
@@ -651,9 +651,7 @@ fn is_selected(_lua: &Lua, #[ctx] plugin: Arc<str>, slug: String) -> LuaResult<b
 ///
 /// {spec} fields:
 ///   `slug` (string) Required. Letters, digits, `_` and `-`, starting with a
-///           letter or digit. Shipped names and custom protocol definitions
-///           are reserved. A catalog name requires `plugin = "package-name"`
-///           in providers.toml selecting this package.
+///           letter or digit. See the [slug rules](/docs/providers/#slug-rules).
 ///   `display_name` (string) Required. Shown in the UI.
 ///   `codec` (string) Wire format: `"openai"`, `"openai-responses"`,
 ///           `"anthropic"` or `"google"`.
