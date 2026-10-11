@@ -428,8 +428,8 @@ fn collect_headers(headers: &HeaderMap) -> Vec<(String, String)> {
 ///   `max_bytes` (integer) Max response size in bytes (default 5 MB).
 ///   `retry` (integer) Retries on 5xx errors (default 3).
 ///   `line_match` (string) Regex. Keep only the response lines it
-///   matches. Filtering happens after the body is read, so `max_bytes`
-///   still caps the transfer.
+///     matches. Filtering happens after the body is read, so `max_bytes`
+///     still caps the transfer.
 ///
 /// The response table has `body` (string), `status` (integer),
 /// `content_type` (string) and `headers` (table). `headers` holds the final

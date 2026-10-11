@@ -3838,14 +3838,14 @@ one. This holds only for an origin the user set (`<SLUG>_BASE_URL`,
 `providers.toml`) or a built-in provider's default.
 
 {opts} fields:
-  `method` (string) HTTP verb (default `"GET"`).
-  `headers` (table) Header name/value pairs.
-  `body` (string) Request body.
-  `timeout` (integer) Total timeout in seconds, max 120 (default 30,
-    none on a provider's origin).
-  `max_bytes` (integer) Max response size in bytes (default 5 MB).
-  `retry` (integer) Retries on 5xx errors (default 3).
-  `line_match` (string) Regex. Keep only the response lines it
+- `method` (`string`) HTTP verb (default `"GET"`).
+- `headers` (`table`) Header name/value pairs.
+- `body` (`string`) Request body.
+- `timeout` (`integer`) Total timeout in seconds, max 120 (default 30,
+  none on a provider's origin).
+- `max_bytes` (`integer`) Max response size in bytes (default 5 MB).
+- `retry` (`integer`) Retries on 5xx errors (default 3).
+- `line_match` (`string`) Regex. Keep only the response lines it
   matches. Filtering happens after the body is read, so `max_bytes`
   still caps the transfer.
 
@@ -3897,7 +3897,7 @@ unless `net.allowed_private_hosts` allows them.
 garbage collected, and when the plugin unloads.
 
 {opts} fields:
-  `timeout` (integer) Connect timeout in seconds, max 60 (default 10).
+- `timeout` (`integer`) Connect timeout in seconds, max 60 (default 10).
 
 Requires the `net` [plugin permission](#plugin-permissions).
 
@@ -4036,130 +4036,130 @@ Set exactly one of `codec` or `base`. An unknown key, or an option the
 chosen codec cannot honour, fails registration.
 
 Every hook is optional and gets a `ctx` table as its first argument:
-  `ctx.slug` (string) The slug the hook serves.
-  `ctx.base_url` (string?) The origin requests go to right now: an origin
-          `auth` returned, then `<SLUG>_BASE_URL` or `providers.toml`,
-          then the declared `base_url`, nil when none is set. Build URLs
-          from it so side calls follow a user who points the slug at a
-          gateway.
-  `ctx.headers` (table) The headers every request to the slug carries.
-  `ctx.get_json(target)` (function) A GET with `ctx.headers`. A `target`
-          starting with `/` is appended to `ctx.base_url`, an absolute URL
-          is used as is. Never retried. Returns the decoded body, or nil
-          plus an error the hook can return as its own.
+- `ctx.slug` (`string`) The slug the hook serves.
+- `ctx.base_url` (`string?`) The origin requests go to right now: an origin
+  `auth` returned, then `<SLUG>_BASE_URL` or `providers.toml`,
+  then the declared `base_url`, nil when none is set. Build URLs
+  from it so side calls follow a user who points the slug at a
+  gateway.
+- `ctx.headers` (`table`) The headers every request to the slug carries.
+- `ctx.get_json(target)` (`function`) A GET with `ctx.headers`. A `target`
+  starting with `/` is appended to `ctx.base_url`, an absolute URL
+  is used as is. Never retried. Returns the decoded body, or nil
+  plus an error the hook can return as its own.
 
 A hook fails by returning `nil, err`, with `err` from `ctx.get_json` or
 `maki.provider.http_error`. Maki then retries and honours `retry-after` as
 it does for a built-in provider.
 
 {spec} fields:
-  `slug` (string) Required. Letters, digits, `_` and `-`, starting with a
-          letter or digit. See the [slug rules](/docs/providers/#slug-rules).
-  `display_name` (string) Required. Shown in the UI.
-  `codec` (string) Wire format: `"openai"`, `"openai-responses"`,
-          `"anthropic"` or `"google"`.
-  `base` (string) A native provider to borrow whole, e.g. `"ollama"`.
-          Prefer `codec` for a new provider.
-  `base_url` (string) Default origin. Must be `https`, or `http` on
-          loopback, and its host must match `net_hosts`. Only with
-          `codec`. A `base` moves only to an origin the `auth` hook
-          returns, so plans with a `base_url` need a `codec` too.
-  `api_key_env` (string) Env var holding the API key, re-read each time
-          the provider is built. Sent as `x-api-key` for anthropic,
-          `x-goog-api-key` for google, and a bearer token otherwise.
-          Also lists the provider in `maki auth login`, which saves the
-          key. Needs the `env` permission.
-  `default_model` (string) Model id without the slug, selected after
-          `maki auth login`.
-  `login_url` (string) Page `maki auth login` opens to get a key.
-  `plans` (table) List of `{ key, display_name, base_url, default_model,
-          login_url }` for `maki auth login` to offer. `key` and
-          `display_name` are required. A plan's `base_url` defaults to
-          the provider's and must match `net_hosts`. The choice is saved
-          as `plan` in `providers.toml`.
-  `family` (string) `"generic"`, `"claude"`, `"gpt"`, `"gemini"`,
-          `"glm"` or `"synthetic"`. Applies to models without a row.
-          Defaults to the provider behind `codec` or `base`.
-  `accepts_arbitrary_models` (boolean) Assign tiers to `list_models`
-          results. When false, tiers come only from `models`. This and
-          the next two default to the `base` provider's, or with a
-          `codec` to `true`, `16384` and `128000`.
-  `max_output_tokens` (integer|false) Output cap for rows that leave it
-          out and models without a row. `false` sends no cap.
-  `context_window` (integer) Context window for rows that leave it out
-          and models without a row.
-  `pricing_schedule` (table) Peak-hour pricing, as
-          `{ windows = { { 1, 4 }, ... }, multiplier = 2,
-          weekdays_only = true }`. Windows are `{ start, end }` UTC
-          hours with `end` exclusive. Row `pricing` is the off-peak rate.
-  `aperture` (table) `{ path_prefix = "/v1" }` routes Aperture models
-          of this slug through this provider.
-  `docs` (table) `{ features, discovery_note }` for the generated
-          [Providers](/docs/providers/) page. `discovery_note` replaces
-          the model table when `models` is empty.
-  `system_prefix` (string) Text prepended to the system prompt. The
-          `google` codec refuses it.
-  `openai` (table) Options for `codec = "openai"`, all optional:
-    `max_tokens_field` (string) Body field carrying the output cap.
-            Defaults to `max_tokens`.
-    `include_stream_usage` (boolean) Ask for usage on the stream.
-            Defaults to `true`.
-    `thinking` (table) How the API spells reasoning effort. Without it,
-            each model's `thinking_fields` decides.
-      `dialect` (string) Required. One of `"standard"`, `"codex"`,
-              `"codex-5-1"`, `"coding-plan"`, `"gpt-5-6"`, `"gpt-6"`,
-              `"prefer-high"`, `"high-only"`, `"glm"`, `"deepseek"`,
-              `"anthropic-adaptive"`, `"tensorx"`, `"grok"` or
-              `"ollama"`.
-      `field` (string) Body path for the effort. Dots nest, e.g.
-              `"reasoning.effort"`. Defaults to `reasoning_effort`.
-      `requires_support` (boolean) Send effort only to models that
-              support thinking. Defaults to `false`.
-    `headers` (table) Sent with every request. A header the credentials
-            set wins. `host`, `content-length`, `transfer-encoding` and
-            `connection` are refused.
-    `extra_body` (table) Merged into every request body.
-    `session_id` (table) Sends the session id, as
-            `{ header = "x-affinity" }` or `{ body_field = "session_id" }`.
-    `thinking_overrides` (table) Model id prefix to `"no"`, `"yes"` or
-            `"required"`, overriding the model table. Longest prefix wins.
-  `models` (table) Static model rows, read once at registration. They
-           describe models and add to the runtime list. See
-           [model rows](/docs/providers/#model-rows).
-  `auth` (function) `function(ctx, purpose)` returning
-           `{ base_url = ..., headers = { ... } }`. `purpose` is
-           `"resolve"` before the first request, `"refresh"` after a 401,
-           or `"reload"` after a login changed the stored credentials.
-           Omitting `base_url` keeps the current one.
-  `list_models` (function) `function(ctx)` returning model rows for a
-           catalogue only known at runtime. Without it, the provider
-           lists what its codec or base lists. Rows carry `id`,
-           `context_window`, `max_output_tokens`, `pricing`,
-           `supports_thinking`, `supports_vision` and `tier`, plus two
-           optional fields. `extra` is any JSON value, handed back to
-           `build_body` as `opts.model_info`. `effort` narrows the
-           `openai.thinking` dialect for this model: `supported` lists the
-           effort names the provider accepts, and `send_off` is `true` to
-           send `"none"` for off or `false` to send nothing.
-  `build_body` (function) `function(ctx, body, model, opts)` returning
-           the body to send. `opts.thinking` is the rendered effort level,
-           nil when thinking is off. `openai` codecs only.
-  `map_error` (function) `function(ctx, status, message)` returning
-           `{ status = ..., message = ... }`, or nil to keep the error.
-           Retryability follows the returned status.
-  `fetch_usage` (function) `function(ctx)` returning
-           `{ plan = ..., limits = { { label = ..., percentage = ...,
-           reset_at = ..., detail = ... } }, by_model_today = { { model = ...,
-           input_tokens = ..., output_tokens = ..., total_tokens = ...,
-           spend_microdollars = ... } } }` or nil. Only `label` is
-           required in a limit, and `by_model_today` is optional.
-  `login` (function) `function(ctx)`. Defining it lists the provider in
-           `maki auth login`. This `ctx` also has `ctx.print(text)`,
-           `ctx.prompt({ label = ..., secret = ... })` and
-           `ctx.open_url(url)`.
-  `logout` (function) `function(ctx)`, run by `maki auth logout` before
-           Maki deletes the stored credentials itself. Only needed for
-           work Maki cannot do, such as revoking a token upstream.
+- `slug` (`string`) Required. Letters, digits, `_` and `-`, starting with a
+  letter or digit. See the [slug rules](/docs/providers/#slug-rules).
+- `display_name` (`string`) Required. Shown in the UI.
+- `codec` (`string`) Wire format: `"openai"`, `"openai-responses"`,
+  `"anthropic"` or `"google"`.
+- `base` (`string`) A native provider to borrow whole, e.g. `"ollama"`.
+  Prefer `codec` for a new provider.
+- `base_url` (`string`) Default origin. Must be `https`, or `http` on
+  loopback, and its host must match `net_hosts`. Only with
+  `codec`. A `base` moves only to an origin the `auth` hook
+  returns, so plans with a `base_url` need a `codec` too.
+- `api_key_env` (`string`) Env var holding the API key, re-read each time
+  the provider is built. Sent as `x-api-key` for anthropic,
+  `x-goog-api-key` for google, and a bearer token otherwise.
+  Also lists the provider in `maki auth login`, which saves the
+  key. Needs the `env` permission.
+- `default_model` (`string`) Model id without the slug, selected after
+  `maki auth login`.
+- `login_url` (`string`) Page `maki auth login` opens to get a key.
+- `plans` (`table`) List of `{ key, display_name, base_url, default_model,
+  login_url }` for `maki auth login` to offer. `key` and
+  `display_name` are required. A plan's `base_url` defaults to
+  the provider's and must match `net_hosts`. The choice is saved
+  as `plan` in `providers.toml`.
+- `family` (`string`) `"generic"`, `"claude"`, `"gpt"`, `"gemini"`,
+  `"glm"` or `"synthetic"`. Applies to models without a row.
+  Defaults to the provider behind `codec` or `base`.
+- `accepts_arbitrary_models` (`boolean`) Assign tiers to `list_models`
+  results. When false, tiers come only from `models`. This and
+  the next two default to the `base` provider's, or with a
+  `codec` to `true`, `16384` and `128000`.
+- `max_output_tokens` (`integer|false`) Output cap for rows that leave it
+  out and models without a row. `false` sends no cap.
+- `context_window` (`integer`) Context window for rows that leave it out
+  and models without a row.
+- `pricing_schedule` (`table`) Peak-hour pricing, as
+  `{ windows = { { 1, 4 }, ... }, multiplier = 2,
+  weekdays_only = true }`. Windows are `{ start, end }` UTC
+  hours with `end` exclusive. Row `pricing` is the off-peak rate.
+- `aperture` (`table`) `{ path_prefix = "/v1" }` routes Aperture models
+  of this slug through this provider.
+- `docs` (`table`) `{ features, discovery_note }` for the generated
+  [Providers](/docs/providers/) page. `discovery_note` replaces
+  the model table when `models` is empty.
+- `system_prefix` (`string`) Text prepended to the system prompt. The
+  `google` codec refuses it.
+- `openai` (`table`) Options for `codec = "openai"`, all optional:
+  - `max_tokens_field` (`string`) Body field carrying the output cap.
+    Defaults to `max_tokens`.
+  - `include_stream_usage` (`boolean`) Ask for usage on the stream.
+    Defaults to `true`.
+  - `thinking` (`table`) How the API spells reasoning effort. Without it,
+    each model's `thinking_fields` decides.
+    - `dialect` (`string`) Required. One of `"standard"`, `"codex"`,
+      `"codex-5-1"`, `"coding-plan"`, `"gpt-5-6"`, `"gpt-6"`,
+      `"prefer-high"`, `"high-only"`, `"glm"`, `"deepseek"`,
+      `"anthropic-adaptive"`, `"tensorx"`, `"grok"` or
+      `"ollama"`.
+    - `field` (`string`) Body path for the effort. Dots nest, e.g.
+      `"reasoning.effort"`. Defaults to `reasoning_effort`.
+    - `requires_support` (`boolean`) Send effort only to models that
+      support thinking. Defaults to `false`.
+  - `headers` (`table`) Sent with every request. A header the credentials
+    set wins. `host`, `content-length`, `transfer-encoding` and
+    `connection` are refused.
+  - `extra_body` (`table`) Merged into every request body.
+  - `session_id` (`table`) Sends the session id, as
+    `{ header = "x-affinity" }` or `{ body_field = "session_id" }`.
+  - `thinking_overrides` (`table`) Model id prefix to `"no"`, `"yes"` or
+    `"required"`, overriding the model table. Longest prefix wins.
+- `models` (`table`) Static model rows, read once at registration. They
+  describe models and add to the runtime list. See
+  [model rows](/docs/providers/#model-rows).
+- `auth` (`function`) `function(ctx, purpose)` returning
+  `{ base_url = ..., headers = { ... } }`. `purpose` is
+  `"resolve"` before the first request, `"refresh"` after a 401,
+  or `"reload"` after a login changed the stored credentials.
+  Omitting `base_url` keeps the current one.
+- `list_models` (`function`) `function(ctx)` returning model rows for a
+  catalogue only known at runtime. Without it, the provider
+  lists what its codec or base lists. Rows carry `id`,
+  `context_window`, `max_output_tokens`, `pricing`,
+  `supports_thinking`, `supports_vision` and `tier`, plus two
+  optional fields. `extra` is any JSON value, handed back to
+  `build_body` as `opts.model_info`. `effort` narrows the
+  `openai.thinking` dialect for this model: `supported` lists the
+  effort names the provider accepts, and `send_off` is `true` to
+  send `"none"` for off or `false` to send nothing.
+- `build_body` (`function`) `function(ctx, body, model, opts)` returning
+  the body to send. `opts.thinking` is the rendered effort level,
+  nil when thinking is off. `openai` codecs only.
+- `map_error` (`function`) `function(ctx, status, message)` returning
+  `{ status = ..., message = ... }`, or nil to keep the error.
+  Retryability follows the returned status.
+- `fetch_usage` (`function`) `function(ctx)` returning
+  `{ plan = ..., limits = { { label = ..., percentage = ...,
+  reset_at = ..., detail = ... } }, by_model_today = { { model = ...,
+  input_tokens = ..., output_tokens = ..., total_tokens = ...,
+  spend_microdollars = ... } } }` or nil. Only `label` is
+  required in a limit, and `by_model_today` is optional.
+- `login` (`function`) `function(ctx)`. Defining it lists the provider in
+  `maki auth login`. This `ctx` also has `ctx.print(text)`,
+  `ctx.prompt({ label = ..., secret = ... })` and
+  `ctx.open_url(url)`.
+- `logout` (`function`) `function(ctx)`, run by `maki auth logout` before
+  Maki deletes the stored credentials itself. Only needed for
+  work Maki cannot do, such as revoking a token upstream.
 
 Requires the `net` [plugin permission](#plugin-permissions).
 
@@ -4217,9 +4217,9 @@ provider's failure: a 429 or 5xx is retried and `retry-after` sets the
 wait. A hook that raises instead fails as a broken hook.
 
 {res} fields:
-  `status` (integer) Required. The HTTP status.
-  `body` (string) Required. Becomes the error message.
-  `headers` (table) Only `retry-after` is read, case-insensitively.
+- `status` (`integer`) Required. The HTTP status.
+- `body` (`string`) Required. Becomes the error message.
+- `headers` (`table`) Only `retry-after` is read, case-insensitively.
 
 **Parameters:**
 
