@@ -157,6 +157,15 @@ impl Renderer {
         }
     }
 
+    /// [`Self::streaming`] that still wraps paragraphs, for callers that
+    /// count the rows they get back.
+    pub fn streaming_wrapped() -> Self {
+        Self {
+            incremental: true,
+            ..Self::default()
+        }
+    }
+
     pub fn render(&mut self, text: &str, width: u16) -> Vec<Line> {
         let theme_gen = maki_highlight::theme_generation();
         if theme_gen != self.theme_gen {

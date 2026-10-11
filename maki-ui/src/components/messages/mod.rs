@@ -1595,7 +1595,7 @@ fn message_view(
             thinking::tail_rows(mode, msg.thinking_expanded),
             thinking::line_count(&msg.text),
             CLICKABLE,
-            |rows| thinking::render_tail(&msg.text, rows, width, thinking_style().text_style),
+            |rows| thinking::render_tail(&msg.text, rows, width, thinking_style().text_style, None),
         )
     {
         return (lines, true);

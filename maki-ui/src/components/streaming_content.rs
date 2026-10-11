@@ -1,5 +1,5 @@
 use crate::animation::Typewriter;
-use crate::components::thinking;
+use crate::components::thinking::{self, LiveTail};
 use crate::markdown::paint_semantic;
 use crate::theme;
 
@@ -84,6 +84,7 @@ pub(crate) struct StreamingContent {
     typewriter: Typewriter,
     cache: StreamingCache,
     tail: TailCache,
+    live_tail: LiveTail,
     renderer: Renderer,
     prefix: &'static str,
     text_style: Style,
@@ -101,6 +102,7 @@ impl StreamingContent {
             typewriter: Typewriter::with_speed(ms_per_char),
             cache: StreamingCache::default(),
             tail: None,
+            live_tail: LiveTail::default(),
             renderer: Renderer::streaming(),
             prefix,
             text_style,
@@ -116,12 +118,14 @@ impl StreamingContent {
         self.typewriter.clear();
         self.cache.invalidate();
         self.tail = None;
+        self.live_tail = LiveTail::default();
         self.renderer = Renderer::streaming();
     }
 
     pub fn take_all(&mut self) -> String {
         self.cache.invalidate();
         self.tail = None;
+        self.live_tail = LiveTail::default();
         self.renderer = Renderer::streaming();
         self.typewriter.take_all()
     }
@@ -174,7 +178,13 @@ impl StreamingContent {
             rows,
         );
         if self.tail.as_ref().is_none_or(|(cached, _)| *cached != key) {
-            let lines = thinking::render_tail(visible, rows, width, self.text_style);
+            let lines = thinking::render_tail(
+                visible,
+                rows,
+                width,
+                self.text_style,
+                Some(&mut self.live_tail),
+            );
             self.tail = Some((key, lines));
         }
         self.tail.as_ref().and_then(|(_, lines)| lines.as_deref())
