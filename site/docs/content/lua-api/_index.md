@@ -996,9 +996,8 @@ You set it, because you are the only one who knows what your default does
 with the arguments it is handed. Pass `{ capability = { "net" } }` to
 charge the permissions you name, all of them at once; `{ capability = {} }`
 to let anyone layer for free, which is the honest price for a slot whose
-arguments are inert; or leave {opts} out to charge every permission, what a
-tool declaring no capability charges. You can only name permissions your
-own plugin holds.
+arguments are inert; or leave {opts} out to charge every permission. You
+can only name permissions your own plugin holds.
 
 Throws if another plugin already owns a slot with the same {name}, or
 if {name} starts with `"tool."`, `"ui."`, `"agent."`, or `"permission."`,

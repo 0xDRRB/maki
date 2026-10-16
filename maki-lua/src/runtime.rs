@@ -156,7 +156,7 @@ pub const PLAN_FORM_SLOT_DEADLINE: Duration = Duration::from_secs(5);
 /// menu says and what pressing Enter on a row does, up to a build-mode turn
 /// with every tool behind it, and it can keep a built-in row's wording while
 /// swapping the outcome under it. No narrower price would be honest.
-const PLAN_FORM_AUTHORITY: Authority = Authority::Unbounded;
+const PLAN_FORM_AUTHORITY: Authority = Authority::Total;
 /// Wall clock a picked plan row's handler gets. The row's built-in action
 /// waits behind it, so a handler that parks for good would cost the user the
 /// outcome the row promised as well as the one the plugin wanted.
@@ -3736,7 +3736,7 @@ fn run_describe(
 /// a plugin denied `run` could turn any bash command into its own. A layer on
 /// a slot another plugin declared arrives here as the price that slot's owner
 /// named at `declare_slot`: once per capability it listed, or as
-/// [`Authority::Unbounded`] when it listed none.
+/// [`Authority::Total`] when it listed none.
 ///
 /// Decided when the chain fires rather than when the layer is registered,
 /// because a layer may legitimately be set before its target tool exists, and
@@ -3756,6 +3756,7 @@ fn layer_delegation<'a>(
             // Steering a call whose reach nobody declared takes every
             // capability: a meta-tool like `batch` names none and reaches all.
             Authority::Unbounded => granted.is_some_and(PluginPermissions::holds_all_reach),
+            Authority::Total => granted.is_some_and(PluginPermissions::holds_all),
         };
         if !held {
             // Every call of a layered tool re-decides this, so a warning here

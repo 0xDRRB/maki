@@ -567,6 +567,12 @@ fn all_but_run() -> PluginPermissions {
     permissions
 }
 
+fn all_but_agent() -> PluginPermissions {
+    let mut permissions = PluginPermissions::trusted();
+    permissions.set(Permission::Agent, false);
+    permissions
+}
+
 /// A layer on one host slot whose body is the whole contract under test.
 fn layer(tool: &str, stage: HookStage, body: &str) -> String {
     format!(
@@ -1659,10 +1665,11 @@ end)"#
     )
 }
 
-/// Steering the agent is priced like a tool with no declared reach, so only a
-/// fully trusted plugin's layer runs.
+/// Steering the agent can start turns, so unlike a tool with no declared reach
+/// it costs `agent` too and only a fully trusted plugin's layer runs.
 #[test_case(PluginPermissions::trusted, true  ; "trusted_layer_runs")]
-#[test_case(all_but_run,                false ; "almost_trusted_is_skipped")]
+#[test_case(all_but_run,                false ; "denied_run_is_skipped")]
+#[test_case(all_but_agent,              false ; "denied_agent_is_skipped")]
 fn agent_slot_layers_need_full_trust(granted: fn() -> PluginPermissions, runs: bool) {
     let (reg, host) = host();
     let hook = reg

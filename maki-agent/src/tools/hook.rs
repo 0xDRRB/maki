@@ -55,9 +55,13 @@ pub enum Authority {
     /// Exactly the capability the tool declares; a layer needs that one.
     Capability(Permission),
     /// Reach nobody declared: a tool naming no capability, an MCP server tool,
-    /// an ACP client tool, search. A layer needs every capability, because no
-    /// narrower answer would be honest.
+    /// an ACP client tool, search. A layer needs every capability a tool can
+    /// reach, because no narrower answer would be honest. `agent` is not one:
+    /// every call already runs inside a turn.
     Unbounded,
+    /// Steering what the agent does next, up to turns nobody typed. A layer
+    /// needs every permission, `agent` included.
+    Total,
 }
 
 impl From<Option<ToolReach>> for Authority {
