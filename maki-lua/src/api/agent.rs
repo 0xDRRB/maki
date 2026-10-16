@@ -1284,11 +1284,16 @@ struct Background {
 }
 
 impl Background {
-    fn start_prompt(&self, id: &str) -> PromptSettle {
+    fn start_prompt(&self, id: &str, event_tx: EventSender) -> PromptSettle {
         self.registry.update(id, |e| e.info.running = true);
         PromptSettle {
             registry: self.registry.clone(),
             id: id.to_owned(),
+            event_tx,
+            outcome: Some(AgentEvent::Error {
+                message: CANCELLED_MSG.to_owned(),
+                auth: false,
+            }),
         }
     }
 }
@@ -1298,14 +1303,25 @@ impl Background {
 /// runs. Without this the entry would say "running" forever. It can drop while
 /// Lua is tearing down the cancelled coroutine, so it only touches Rust state
 /// and never calls into Lua.
+///
+/// The run only sends `Done` when it comes back `Ok`. A run that failed or got
+/// dropped sends nothing, and its tab would keep its tools spinning until the
+/// session closes. So we tell the tab `outcome` ourselves. It goes through the
+/// relay, so it lands after the run's own events. It is never a `Done`, because
+/// the relay counts every `Done` against the ones `prompt` waits for.
 struct PromptSettle {
     registry: BackgroundSessions,
     id: String,
+    event_tx: EventSender,
+    outcome: Option<AgentEvent>,
 }
 
 impl Drop for PromptSettle {
     fn drop(&mut self) {
         self.registry.update(&self.id, |e| e.info.running = false);
+        if let Some(outcome) = self.outcome.take() {
+            let _ = self.event_tx.send(outcome);
+        }
     }
 }
 
@@ -1440,7 +1456,7 @@ async fn prompt(
     // The user can lower the effort while a monitor sits idle, so we ask the
     // seed again on every prompt. Plan mode is left out on purpose. Each write
     // checks it instead, see `AgentSeed::background_write_block`.
-    let watch = match (&s.background, caller_cancel) {
+    let mut watch = match (&s.background, caller_cancel) {
         (Some(background), Some(caller_cancel)) => {
             let Some(seed) = AgentSeed::live(background.session) else {
                 return Ok(err_pair(not_live(background.session)));
@@ -1453,7 +1469,7 @@ async fn prompt(
             );
             Some((
                 caller_cancel,
-                background.start_prompt(&s.cancellation.ui_id),
+                background.start_prompt(&s.cancellation.ui_id, s.sub_event_tx.clone()),
             ))
         }
         _ => None,
@@ -1520,6 +1536,10 @@ async fn prompt(
         None => Some(run.await),
     };
     drop(agent);
+    // A run that lost the race keeps the `cancelled` it started with.
+    if let (Some((_, settle)), Some(result)) = (&mut watch, &finished) {
+        settle.outcome = result.as_ref().err().map(AgentEvent::error);
+    }
     drop(watch);
     if let Some(Ok(_)) = finished {
         s.dones.expect_one();
@@ -2081,6 +2101,16 @@ mod tests {
         (upstream, parent_rx)
     }
 
+    fn chat_upstream(session: MakiId, ui_tx: Sender<UiAction>) -> Upstream {
+        Upstream::Chat {
+            session,
+            plugin: Arc::from(PLUGIN),
+            ui: Some(ui_tx),
+            registry: BackgroundSessions::default(),
+            id: PARENT_ID.into(),
+        }
+    }
+
     /// Dropping the guard is what ends the relay: a Lua tool context keeps a
     /// sender alive past the run, so disconnect never comes. The forwarded
     /// count also pins down that the close marker itself stays behind, since
@@ -2145,13 +2175,7 @@ mod tests {
 
         smol::block_on(relay_session_events(
             relayed_run(),
-            Upstream::Chat {
-                session,
-                plugin: Arc::from(PLUGIN),
-                ui: Some(ui_tx),
-                registry: BackgroundSessions::default(),
-                id: PARENT_ID.into(),
-            },
+            chat_upstream(session, ui_tx),
             subagent_info(),
             done_tx,
             None,
@@ -2188,6 +2212,51 @@ mod tests {
                 "done",
                 "stream_closed"
             ]
+        );
+    }
+
+    /// A cancel that drops a background prompt mid-run drops the run too, so
+    /// no `Done` comes. The tab must still hear the run ended, or its task
+    /// stays working, and the relay must not count that as the run's `Done`.
+    #[test]
+    fn dropped_background_prompt_still_ends_the_run_in_its_tab() {
+        let (guard, sub_events) = event_stream();
+        let background = Background {
+            registry: BackgroundSessions::default(),
+            session: MakiId::generate(),
+            stopped: Arc::default(),
+            thinking: None,
+            fast: None,
+        };
+        drop(background.start_prompt(PARENT_ID, guard.sender(RUN_ID)));
+        drop(guard);
+        let (done_tx, done_rx) = flume::unbounded();
+        let (ui_tx, ui_rx) = flume::unbounded();
+
+        smol::block_on(relay_session_events(
+            sub_events,
+            chat_upstream(MakiId::generate(), ui_tx),
+            subagent_info(),
+            done_tx,
+            None,
+        ));
+
+        assert!(done_rx.is_empty());
+        let events = ui_rx
+            .drain()
+            .map(|action| match action {
+                UiAction::PluginTaskEvent { envelope, .. } => envelope.event,
+                _ => panic!("relay must only send task events"),
+            })
+            .collect::<Vec<_>>();
+        assert!(
+            matches!(
+                events.as_slice(),
+                [AgentEvent::Error { message, auth: false }, AgentEvent::StreamClosed]
+                    if message == CANCELLED_MSG
+            ),
+            "{:?}",
+            event_names(&events)
         );
     }
 }

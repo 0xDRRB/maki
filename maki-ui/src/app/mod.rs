@@ -1827,10 +1827,14 @@ impl App {
                 ChatEventResult::Error(message) => {
                     self.chats[chat_idx].cancel_in_progress();
                     self.chats[chat_idx].idle = true;
-                    self.chats[chat_idx].push(DisplayMessage::new(
-                        DisplayRole::Error,
-                        cap_error_text(&message),
-                    ));
+                    // Esc in the tab already wrote the task's ending, and the
+                    // error its cut short run sends after that would say it twice.
+                    if !self.chats[chat_idx].is_finished() {
+                        self.chats[chat_idx].push(DisplayMessage::new(
+                            DisplayRole::Error,
+                            cap_error_text(&message),
+                        ));
+                    }
                 }
                 _ => {}
             }
