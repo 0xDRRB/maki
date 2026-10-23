@@ -1,7 +1,7 @@
 name: Claude Review
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, ready_for_review]
   issue_comment:
     types: [created]
@@ -13,7 +13,7 @@ concurrency:
 jobs:
   review:
     if: |
-      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
       (github.event.issue.pull_request && startsWith(github.event.comment.body, '/review') &&
        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
             echo "::error::Set the REVIEW_PROMPT repository variable"
             exit 1
           fi
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          if [ "$GITHUB_EVENT_NAME" = pull_request_target ]; then
             if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" --jq '.[].user.login' | grep -xF "$REVIEWER[bot]" >/dev/null; then
               echo "Already reviewed, comment /review to review again"
               exit 0
@@ -82,6 +82,8 @@ jobs:
             --model "$REVIEW_MODEL" \
             --effort "$REVIEW_EFFORT" \
             --settings '{"attribution":{"commit":"","pr":""},"includeCoAuthoredBy":false,"sandbox":{"network":{"allowedDomains":["github.com","api.github.com"]}}}' \
+            --setting-sources user \
+            --strict-mcp-config \
             --add-dir "$SCRATCH_DIR" \
             --allowedTools "Read(./**),Grep(./**),Glob(./**),Read(/$SCRATCH_DIR/**),Edit(/$SCRATCH_DIR/**),Write(/$SCRATCH_DIR/**),WebSearch,WebFetch,Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(git blame:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api:*)" \
             --output-format stream-json --verbose \
