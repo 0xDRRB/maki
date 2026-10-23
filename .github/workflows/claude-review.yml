@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
       pull-requests: write
     env:
       PR: ${{ github.event.pull_request.number || github.event.issue.number }}
@@ -30,6 +31,11 @@ jobs:
       PR_AUTHOR: ${{ github.event.pull_request.user.login }}
       SCRATCH_DIR: /tmp/claude-review
     steps:
+      - name: Acknowledge
+        run: gh api --silent "repos/$GITHUB_REPOSITORY/$TARGET/reactions" -f content=eyes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ github.event.comment.id && format('issues/comments/{0}', github.event.comment.id) || format('issues/{0}', env.PR) }}
       - run: >-
           sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
           && sudo sysctl -qw kernel.apparmor_restrict_unprivileged_userns=0
