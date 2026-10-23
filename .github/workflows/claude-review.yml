@@ -6,16 +6,15 @@ on:
   issue_comment:
     types: [created]
 
-concurrency:
-  group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
   review:
     if: |
       (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
       (github.event.issue.pull_request && startsWith(github.event.comment.body, '/review') &&
        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.comment.author_association))
+    concurrency:
+      group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
