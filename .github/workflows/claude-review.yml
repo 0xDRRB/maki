@@ -76,7 +76,7 @@ jobs:
             since=$(date -u -d '24 hours ago' +%FT%TZ)
             opened=$(gh api -X GET search/issues -f q="repo:$GITHUB_REPOSITORY is:pr author:$REVIEW_USER created:>=$since" --jq .total_count)
             requested=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/comments?since=$since&per_page=100" \
-              --jq ".[] | select(.user.login == \"$REVIEW_USER\" and .created_at >= \"$since\" and (.body | startswith(\"/review\"))) | .id" | wc -l)
+              --jq ".[] | select(.user.login == \"$REVIEW_USER\" and .created_at >= \"$since\" and (.body | ascii_downcase | startswith(\"/review\"))) | .id" | wc -l)
             used=$((opened + requested))
             if [ "$used" -gt "$REVIEW_MAX_PRS_PER_DAY" ]; then
               echo "::notice::$REVIEW_USER used $used reviews in 24h ($opened PRs, $requested /review), limit $REVIEW_MAX_PRS_PER_DAY; a maintainer can comment /review to review anyway"
