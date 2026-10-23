@@ -221,9 +221,10 @@ maki.api.register_tool({
     total_lines = total_lines or (start_line + #lines - 1)
     local path = input.path or ""
     -- The llm text starts at `offset`, so the context above it can only
-    -- come from the file as it is now; a file edited since the call may
-    -- colour the window differently than the live call did.
-    local content = start_line > 1 and maki.fs.read(path)
+    -- come from the file as it is now, and a file edited since the call may
+    -- colour the window differently than the live call did. Restore runs on
+    -- every load and re-render, so read just those lines and not a whole log.
+    local content = start_line > 1 and maki.fs.read(path, { limit = start_line - 1 })
     local prefix = content and highlight_prefix(split_lines(content), start_line)
     return build_file_view(lines, start_line, total_lines, path, ctx, prefix)
   end,
