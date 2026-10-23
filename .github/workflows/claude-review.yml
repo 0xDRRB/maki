@@ -32,10 +32,18 @@ jobs:
       AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association || github.event.pull_request.author_association }}
       SCRATCH_DIR: /tmp/claude-review
     steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        if: vars.REVIEW_APP_ID != ''
+        with:
+          app-id: ${{ vars.REVIEW_APP_ID }}
+          private-key: ${{ secrets.REVIEW_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
       - name: Acknowledge
         run: gh api --silent "repos/$GITHUB_REPOSITORY/$TARGET/reactions" -f content=eyes
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           TARGET: ${{ github.event.comment.id && format('issues/comments/{0}', github.event.comment.id) || format('issues/{0}', env.PR) }}
       - run: >-
           sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
@@ -48,14 +56,6 @@ jobs:
       - run: gh pr checkout "$PR"
         env:
           GH_TOKEN: ${{ github.token }}
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        if: vars.REVIEW_APP_ID != ''
-        with:
-          app-id: ${{ vars.REVIEW_APP_ID }}
-          private-key: ${{ secrets.REVIEW_APP_PRIVATE_KEY }}
-          permission-contents: read
-          permission-pull-requests: write
       - name: Review
         shell: bash
         env:
