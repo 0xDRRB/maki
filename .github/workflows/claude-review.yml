@@ -29,7 +29,7 @@ jobs:
       REVIEW_EFFORT: ${{ vars.REVIEW_EFFORT || 'high' }}
       REVIEW_MAX_PRS_PER_DAY: ${{ vars.REVIEW_MAX_PRS_PER_DAY || 10 }}
       REVIEW_USER: ${{ github.event.comment.user.login || github.event.pull_request.user.login }}
-      AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+      AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association || github.event.pull_request.author_association }}
       SCRATCH_DIR: /tmp/claude-review
     steps:
       - name: Acknowledge
@@ -73,7 +73,7 @@ jobs:
             echo "Already reviewed, comment /review to review again"
             exit 0
           fi
-          if [ "$GITHUB_EVENT_NAME" = pull_request_target ] || [ "$AUTHOR_ASSOCIATION" = CONTRIBUTOR ]; then
+          if ! [[ "$AUTHOR_ASSOCIATION" =~ ^(OWNER|MEMBER|COLLABORATOR)$ ]]; then
             since=$(date -u -d '24 hours ago' +%FT%TZ)
             opened=$(gh api -X GET search/issues -f q="repo:$GITHUB_REPOSITORY is:pr author:$REVIEW_USER created:>=$since" --jq .total_count)
             requested=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/comments?since=$since&per_page=100" \
