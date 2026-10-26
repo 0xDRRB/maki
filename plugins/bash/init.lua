@@ -260,7 +260,7 @@ Commands run in the session's working directory (see Environment) by default.
 - Do NOT use to communicate text to the user.
 - Chain dependent commands with `&&`. Use batch for independent ones.
 - Provide a short `description` (3-5 words).
-- Output sent to the model is cut beyond 2000 lines or 50KB, keeping its start and end. Do not pipe to `tail` or `head`: piping hides live output.
+- Output sent to the model is cut beyond 2000 lines or 50KB.
 - Interactive commands (sudo, ssh prompts) fail immediately.]]
 
 maki.api.register_prompt_hint({
